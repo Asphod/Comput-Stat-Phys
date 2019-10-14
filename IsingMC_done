@@ -1,0 +1,35 @@
+# -*- coding: utf-8 -*-
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import gridspec
+import numbers
+import math
+from matplotlib import animation, rc
+
+
+
+def Conf2D(LSpin, q=2, type0='up'):
+    """
+    Returns a 2d integer array of s=+/-1 vaules representing a configuration of 
+    an (LSpin x LSpin) Ising system.
+    Allowed types:
+        "up":           all-spins-up cofiguration
+        "down":         all-spins-down cofiguration
+        "interface":    l.h.s.-half-up and r.h.s.-half down
+        "alternating":  checkerboard pattern
+        "random":       random
+        default:        "up"
+    """
+    if type0 == 'up':
+        conf = np.zeros( (LSpin,LSpin) , dtype=int)
+#    elif type0 == 'down':
+#        conf = -np.ones( (LSpin,LSpin) , dtype=int)
+#    elif type0 == 'alternating' or type == 'checkerboard':
+#        conf = np.ones( (LSpin,LSpin) , dtype=int)
+#        conf[1::2,0::2]=-1 # in even lines set odd elemets
+#        conf[0::2,1::2]=-1 # in odd lines set even elements
+    elif type0 == 'random':
+        conf=np.random.randint(0,q,(LSpin,LSpin))
+    else:
+        conf = np.zeros( (LSpin,LSpin) , dtype=int)
+    return conf
