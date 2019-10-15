@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 import numpy as np
 import matplotlib.pyplot as plt
@@ -28,19 +29,17 @@ def Conf2D(LSpin, q=2, type0='up'):
 #        conf = np.ones( (LSpin,LSpin) , dtype=int)
 #        conf[1::2,0::2]=-1 # in even lines set odd elemets
 #        conf[0::2,1::2]=-1 # in odd lines set even elements
-    elif type0 == 'random':
+    if type0 == 'random':
         conf=np.random.randint(0,q,(LSpin,LSpin))
-    else:
-        conf = np.zeros( (LSpin,LSpin) , dtype=int)
     return conf
 
 
 
-def BlackOrWhiteSweep(h,k,conf,q,even):
+def BlackOrWhiteSweep(h,k,conf, q=2, even = True):
     """
     returns conf after executing one odd or even checkerboard spin flip sweep
     """
-
+    
     LSpin = len(conf[1])
 
     #construction de direction random
@@ -48,9 +47,13 @@ def BlackOrWhiteSweep(h,k,conf,q,even):
     conftrial = np.copy(conf)
 
     #sweep dans la conftrial
+    
+    
     if even:
-        conftrial[0::2,0::2]=trial[0::2,0::2]
+        conftrial[1::2,0::2]=trial[1::2,0::2]
+        conftrial[0::2,1::2]=trial[0::2,1::2]
     else:
+        conftrial[0::2,0::2]=trial[0::2,0::2]
         conftrial[1::2,1::2]=trial[1::2,1::2]
 
     #calcul des énergies à t et t+1
@@ -64,21 +67,13 @@ def BlackOrWhiteSweep(h,k,conf,q,even):
     #matrice des probas en fonction de l'énergie
     acc = np.exp(DeltaE)
 
-    #flip ou non
-    flip = np.sign(xi-acc).astype(int)
-    flip[x == -1] = 0
-
-    #construction de la conf après trial
-    trial = trial*flip
-    if even:
-        conf[0::2,0::2]=trial[0::2,0::2]
-    else:
-        conf[1::2,1::2]=trial[1::2,1::2]
-    return conf
+    change = xi - acc
+    conf[change > 0] = conftrial[change > 0]
+    return np.array(conf)
 
 
 
-def CheckerboardSweep(h,k,conf,q):
+def CheckerboardSweep(h,k,conf,q = 2):
     """
     returns conf after executing one odd and one even checkerboard spin flip sweep in random order
     """
@@ -89,11 +84,11 @@ def CheckerboardSweep(h,k,conf,q):
 
     #tirage d'une valeur aléatoire
     if np.random.rand(1)[0]<0.5:
-        newconf = BlackOrWhiteSweep(h,k,conf,q,even=False)
-        newconf = BlackOrWhiteSweep(h,k,newconf,q,even=True)
+        newconf = BlackOrWhiteSweep(h,k,conf,q = q,even=False)
+        newconf = BlackOrWhiteSweep(h,k,newconf,q = q,even=True)
     else:
-        newconf = BlackOrWhiteSweep(h,k,conf,q,even=True)
-        newconf = BlackOrWhiteSweep(h,k,newconf,q,even=False)
+        newconf = BlackOrWhiteSweep(h,k,conf,q = q,even=True)
+        newconf = BlackOrWhiteSweep(h,k,newconf,q = q,even=False)
     return newconf
 
 
@@ -110,7 +105,7 @@ def LocalNNCoupling(conf):
 
 
 
-def ImportanceSampling(h,k,LSpin,NRuns,NSweeps,NInit=0,run_firstconf_list = [],rule='Glauber'):
+def ImportanceSampling(h,k,LSpin,NRuns,NSweeps,NInit=0,run_firstconf_list = []):
     """
     Returns four NRunsxNSweeps arrays containing M, Q, m and q for
     LSpin x LSpin Ising conformations generated using Metropolis MC
@@ -187,3 +182,4 @@ def ImportanceSampling(h,k,LSpin,NRuns,NSweeps,NInit=0,run_firstconf_list = [],r
     run_lastconf_array = np.asarray(run_lastconf_list)
 
     return (run_M_array, run_Q_array, run_m_array, run_q_array, run_lastconf_array )
+
