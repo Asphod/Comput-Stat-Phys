@@ -59,6 +59,7 @@ def BlackOrWhiteSweep(h,k,conf, q=2, even = True):
     #construction de direction random
     trial = Conf2D(LSpin,q,'random')
     conftrial = np.copy(conf)
+    newconf = np.copy(conf)
 
     #sweep dans la conftrial
     if even:
@@ -69,19 +70,21 @@ def BlackOrWhiteSweep(h,k,conf, q=2, even = True):
         conftrial[1::2,1::2]=trial[1::2,1::2]
 
     #calcul des énergies à t et t+1
-    Et = h*conf + k*LocalNNCoupling(conf)
-    Ett = h*conftrial + k*LocalNNCoupling(conftrial)
+    Et = -h*np.cos((2*np.pi/q)*conf) - k*LocalNNCoupling((2*np.pi/q)*conf)
+    Ett = -h*np.cos((2*np.pi/q)*conftrial) - k*LocalNNCoupling((2*np.pi/q)*conftrial)
     DeltaE = Ett - Et
 
     #tirage des probas
     xi = np.random.rand(LSpin,LSpin)
 
     #matrice des probas en fonction de l'énergie
-    acc = np.exp(DeltaE)
+    acc = np.exp(-DeltaE)
+    acc[acc>1] = 1
 
-    change = xi - acc
-    conf[change > 0] = conftrial[change > 0]
-    return np.array(conf)
+    change = acc - xi
+    newconf[change > 0] = conftrial[change > 0]
+    return np.array(newconf)
+#%%
 
 
 def CheckerboardSweep(h,k,conf,q = 2):
