@@ -169,3 +169,82 @@ def AnimateMCRun(run,q=2):
 
 
 
+def ImportanceSampling(h,k,LSpin,NRuns,NSweeps,q=2,NInit=0,run_firstconf_list = []):
+    """
+    Returns four NRunsxNSweeps arrays containing M, Q, m and q for
+    LSpin x LSpin Ising conformations generated using Metropolis MC
+    with checkerboard sweeps
+    plus the list of the NRuns last conformations
+    """
+    NSpin = LSpin**2
+
+    #check assez de matrices initiales pour faire Nruns (si on donne une liste non vide)
+    if len(run_firstconf_list)!=0 and len(run_firstconf_list)<NRuns:
+        print(len(run_firstconf_list), ' conformations in firstconf_list insufficient for ',NRuns, ' runs')
+        return
+
+    #check taille des matrices donnés
+    if len(run_firstconf_list)!=0 and len(run_firstconf_list[0])!=LSpin:
+        print('Size ', len(run_firstconf_list[0]), ' of conformations in firstconf_list incompatible with LSpin = ',LSpin)
+        return
+
+    #si liste de taille au moins Nruns, go
+    if len(run_firstconf_list)!=0:
+        firstconf_list = run_firstconf_list
+
+    else:
+        firstconf_list = []
+#        RandomConf = Conf2D(LSpin,'random')
+        UpConf = Conf2D(LSpin,q,'up')
+        DownConf = Conf2D(LSpin,q,'down')
+        RandConf = Conf2D(LSpin,q,'random')
+        CheckConf = Conf2D(LSpin,q,'checkerboard')
+        for j in np.arange(0,NRuns):
+            if j<NRuns/4:
+                firstconf_list.append(UpConf)
+            elif j<2*NRuns/4:
+                firstconf_list.append(DownConf)
+            elif j<3*NRuns/4:
+                firstconf_list.append(RandConf)
+            else:
+                firstconf_list.append(CheckConf)
+#                firstconf_list.append(RandomConf)
+#                Random conformations take a very long time to equilibrate
+#                at low temperatures
+################################################################################
+
+#    conf = np.empty((LSpin,LSpin))
+
+    run_M_list = []
+    run_Q_list = []
+    run_lastconf_list = []
+    for j in np.arange(0,NRuns):
+        conf = firstconf_list[j]
+        # first equilibrate
+        for i in np.arange(0,NInit):
+            conf = CheckerboardSweep(h,k,conf,q)
+
+        # and then start the data acquisition
+        M_list = []
+        Q_list = []
+        for i in np.arange(0,NSweeps):
+            conf = CheckerboardSweep(h,k,conf,q)
+            M = Magnetization((2*np.pi/q)*conf)
+            Q = NNCoupling((2*np.pi/q)*conf)
+            M_list.append(M)
+            Q_list.append(Q)
+
+        run_M_list.append(M_list)
+        run_Q_list.append(Q_list)
+        run_lastconf_list.append(conf)
+
+    run_M_array = np.asarray(run_M_list)
+    run_Q_array = np.asarray(run_Q_list)
+    run_m_array = 1.*run_M_array.astype(float)/NSpin
+    run_q_array = 1.*run_Q_array.astype(float)/NSpin/2.
+    run_lastconf_array = np.asarray(run_lastconf_list)
+
+    return (run_M_array, run_Q_array, run_m_array, run_q_array, run_lastconf_array )
+
+
+
