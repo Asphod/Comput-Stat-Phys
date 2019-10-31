@@ -247,4 +247,47 @@ def ImportanceSampling(h,k,LSpin,NRuns,NSweeps,q=2,NInit=0,run_firstconf_list = 
     return (run_M_array, run_Q_array, run_m_array, run_q_array, run_lastconf_array )
 
 
+def CheckEquilibrationPlot(identifier,m,q):
+    """ identifier of the form 'h='+ str(h)+', k='+str(k) """
+    
+    time_array = np.arange(0,len(m[1]))
 
+    fig = plt.figure(figsize=(20,12))
+
+#    ax1 = fig.add_subplot(211)
+    ax1 = plt.subplot2grid((2,4), (0,0), colspan=2)
+    ax1.plot(time_array,np.transpose(m),"-")
+    ax1.set_title('Magnetization ( ' + identifier +' )')
+    ax1.set_xlabel('MC sweeps')
+    ax1.set_ylabel('m')
+    ax1.set_ylim([-1.1, 1.1])
+
+#    ax2 = fig.add_subplot(212)
+    ax2 = plt.subplot2grid((2,4), (1,0), colspan=2)
+    ax2.plot(time_array,np.transpose(q),"-")
+    ax2.set_title('NN Coupling ( ' + identifier +' )')
+    ax2.set_xlabel('MC sweeps')
+    ax2.set_ylabel('q')
+    ax2.set_ylim([-1.1, 1.1])
+    
+    ax3 = plt.subplot2grid((2,4), (0,2), colspan=2, rowspan=2)
+    ax3.plot(np.transpose(m),np.transpose(q),"o")
+    ax3.set_title('Observed combinations')
+    ax3.set_xlabel('m')
+    ax3.set_ylabel('q')
+    ax3.set_xlim([-1.1, 1.1])
+    ax3.set_ylim([-1.1, 1.1])
+
+    plt.tight_layout()
+    return plt.show()
+
+
+def RunCheckEquilibrationPlot(identifier,mdict,qdict):
+    """ identifier of the form 'h=' + str(h) + ', k=' + str(k) """
+    
+    plt.figure()
+    
+    for (h,k) in mdict:
+        m = mdict[(h,k)]
+        q = qdict[(h,k)]
+        time_array = np.arange(0,m[1])
