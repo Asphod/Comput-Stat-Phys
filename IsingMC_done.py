@@ -217,6 +217,7 @@ def ImportanceSampling(h,k,LSpin,NRuns,NSweeps,q=2,NInit=0,run_firstconf_list = 
 
     run_M_list = []
     run_Q_list = []
+    run_MVec_list = []
     run_lastconf_list = []
     for j in np.arange(0,NRuns):
         conf = firstconf_list[j]
@@ -227,24 +228,32 @@ def ImportanceSampling(h,k,LSpin,NRuns,NSweeps,q=2,NInit=0,run_firstconf_list = 
         # and then start the data acquisition
         M_list = []
         Q_list = []
+        MVec_list = []
         for i in np.arange(0,NSweeps):
             conf = CheckerboardSweep(h,k,conf,q)
             M = Magnetization((2*np.pi/q)*conf)
             Q = NNCoupling((2*np.pi/q)*conf)
+            MVec = VecMagnetization((2*np.pi/q)*conf)
+            
             M_list.append(M)
             Q_list.append(Q)
+            MVec_list.append(MVec)
 
         run_M_list.append(M_list)
         run_Q_list.append(Q_list)
         run_lastconf_list.append(conf)
+        run_MVec_list.append(MVec_list)
 
     run_M_array = np.asarray(run_M_list)
     run_Q_array = np.asarray(run_Q_list)
     run_m_array = 1.*run_M_array.astype(float)/NSpin
-    run_q_array = 1.*run_Q_array.astype(float)/NSpin/2.
+    run_q_array = 1.*run_Q_array.astype(float)/(NSpin/2.)
     run_lastconf_array = np.asarray(run_lastconf_list)
+    run_MVec_array = np.asarray(run_MVec_list)
+    run_mVec_array = 1.*run_MVec_array.astype(float)/NSpin
 
-    return (run_M_array, run_Q_array, run_m_array, run_q_array, run_lastconf_array )
+    return (run_m_array, run_q_array, run_mVec_array, run_lastconf_array )
+
 
 
 def CheckEquilibrationPlot(identifier,m,q):
