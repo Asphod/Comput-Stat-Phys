@@ -281,6 +281,7 @@ def CheckEquilibrationPlot(identifier,m,q):
 #%%
 def run(q,NSweeps=200,listk=np.arange(1/20,1+1/20,1/20)):
     """ Simulation for a given q. Create a file with all the data."""
+
     q = q
     h = 0
     LSpin = 64
@@ -296,9 +297,13 @@ def run(q,NSweeps=200,listk=np.arange(1/20,1+1/20,1/20)):
     mVec_ISL64Q = {}
     lastconf_ISL64Q = {}
     
-    for k in tqdm(listk):
-        m_ISL64Q[(h,k)], q_ISL64Q[(h,k)], mVec_ISL64Q[(h,k)], lastconf_ISL64Q[(h,k)] = ImportanceSampling(h,k,LSpin,NRuns,NSweeps,q=q)
     
+    kavant=listk[0]
+    m_ISL64Q[(h,k)], q_ISL64Q[(h,k)], mVec_ISL64Q[(h,k)], lastconf_ISL64Q[(h,k)] = ImportanceSampling(h,k,LSpin,NRuns,NSweeps,q=q)
+    for k in tqdm(listk):
+        m_ISL64Q[(h,k)], q_ISL64Q[(h,k)], mVec_ISL64Q[(h,k)], lastconf_ISL64Q[(h,k)] = ImportanceSampling(h,k,LSpin,NRuns,NSweeps,q=q,NInit=0,run_firstconf_list=lastconf_ISL64Q[(h,kavant)])
+        kavant=k
+
     
     with open('/Users/Aspho/github/Comput-Stat-Phys/ISL64Q{}MC{}Overnight.p'.format(q,NSweeps),'wb') as pfile:
         pickle.dump((m_ISL64Q, q_ISL64Q, mVec_ISL64Q, lastconf_ISL64Q),pfile)
