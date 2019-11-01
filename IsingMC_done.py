@@ -364,7 +364,7 @@ listkq6 = list(np.arange(0.1,0.8,0.1)) + list(np.arange(0.75,1.35,0.05)) + list(
 listkq8 = list(np.arange(0.1,0.8,0.1)) + list(np.arange(0.75,1.35,0.05)) + list(np.arange(1.4,3,0.1))
 listkq10 = list(np.arange(0.1,0.9,0.1)) + list(np.arange(0.85,1.45,0.05)) + list(np.arange(1.5,3,0.1))
 
-NSweeps = 50
+NSweeps = 5000
 
 for i in [2,4,6,8,10]:
     run(i,NSweeps=NSweeps,listk=eval('listkq{}'.format(i)))
