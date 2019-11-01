@@ -104,17 +104,6 @@ def CheckerboardSweep(h,k,conf,q = 2):
     return newconf
 
 
-def testrun(h,k,startconf,q=2,NSweeps=10):
-    """
-    returns all the conf for NSweeps
-    """
-    run = [startconf]
-    conf = np.copy(startconf)
-    for i in range(0,NSweeps):
-        conf = CheckerboardSweep(h,k,conf,q=q)
-        run.append(conf)
-    return run
-
 
 
 def LocalNNCoupling(confrad):
@@ -291,12 +280,91 @@ def CheckEquilibrationPlot(identifier,m,q):
     return plt.show()
 
 
-def RunCheckEquilibrationPlot(identifier,mdict,qdict):
-    """ identifier of the form 'h=' + str(h) + ', k=' + str(k) """
+#%%
+def run(q,NSweeps=200,listk=np.arange(1/20,1+1/20,1/20)):
+    """ Simulation for a given q. Create a file with all the data."""
+    q = q
+    h = 0
+    LSpin = 64
+    NRuns = 10
+#    NSweeps = 10000
     
-    plt.figure()
+#    listk = listk
     
-    for (h,k) in mdict:
-        m = mdict[(h,k)]
-        q = qdict[(h,k)]
-        time_array = np.arange(0,m[1])
+#    M_ISL64Q = {}
+#    Q_ISL64Q = {}
+    m_ISL64Q = {}
+    q_ISL64Q = {}
+    mVec_ISL64Q = {}
+    lastconf_ISL64Q = {}
+    
+    for k in tqdm(listk):
+        m_ISL64Q[(h,k)], q_ISL64Q[(h,k)], mVec_ISL64Q[(h,k)], lastconf_ISL64Q[(h,k)] = ImportanceSampling(h,k,LSpin,NRuns,NSweeps,q=q)
+    
+    
+    with open('/Users/Aspho/github/Comput-Stat-Phys/ISL64Q{}MC{}Overnight.p'.format(q,NSweeps),'wb') as pfile:
+        pickle.dump((m_ISL64Q, q_ISL64Q, mVec_ISL64Q, lastconf_ISL64Q),pfile)
+    
+    return
+
+
+#%% Cluster Algo
+def Cluster(h,k,conf,q=2):
+    """ Build a trial cluster to sweep. Proba to build the cluster such as acceptance probability is 1.
+    Return the new configuration """
+    LSpin,LSpin = conf.shape
+    i,j = np.random.randint(0,LSpin,2)
+    
+    cluster_value = conf[i,j]%q
+    explore_points = [[i,j]]
+    cluster = [[i,j]]
+    
+    accept_proba = 1-np.exp(-2*k)
+
+    compteur = 0
+    while explore_points != []:
+        print(compteur)
+        compteur+=1
+        for [n,m] in explore_points:
+            if conf[(n+1)%LSpin , m ]%q == cluster_value and [(n+1)%LSpin,m] not in cluster:
+                xi = np.random.random()
+                if xi <= accept_proba:
+                    explore_points.append([(n+1)%LSpin,m])
+                    cluster.append([(n+1)%LSpin , m])
+            elif conf[(n-1)%LSpin , m ]%q == cluster_value and [(n-1)%LSpin,m] not in cluster:
+                xi = np.random.random()
+                if xi <= accept_proba:
+                    explore_points.append([(n-1)%LSpin , m ])
+                    cluster.append([(n-1)%LSpin , m])
+            elif conf[n, (m+1)%LSpin ]%q == cluster_value and [n,(m+1)%LSpin] not in cluster:
+                xi = np.random.random()
+                if xi <= accept_proba:
+                    explore_points.append([n, (m+1)%LSpin ])
+                    cluster.append([n, (m+1)%LSpin ])
+            elif conf[n, (m-1)%LSpin ]%q == cluster_value and [n,(m-1)%LSpin] not in cluster:
+                xi = np.random.random()
+                if xi <= accept_proba:
+                    explore_points.append([n, (m-1)%LSpin ])
+                    cluster.append([n, (m-1)%LSpin ])
+        explore_points.remove([n,m])
+    
+    conftrial = np.copy(conf)
+    cluster_newvalue = int((cluster_value + q//2) %q)
+    for [i,j] in cluster:
+        conftrial[i,j] = cluster_newvalue
+    return conftrial
+
+
+
+#%% Run overnight 31/10
+    
+listkq2 = [0.1,0.2,0.3,0.35,0.4,0.42,0.43,0.435,0.44,0.45,0.46,0.48,0.5,0.55,0.6,0.7,0.8,0.9,1]    
+listkq4 = list(np.arange(0.1, 0.6,0.1)) + list(np.arange(0.55,1.15,0.05)) + list(np.arange(1.2,2.5,0.1))
+listkq6 = list(np.arange(0.1,0.8,0.1)) + list(np.arange(0.75,1.35,0.05)) + list(np.arange(1.4,3,0.1))
+listkq8 = list(np.arange(0.1,0.8,0.1)) + list(np.arange(0.75,1.35,0.05)) + list(np.arange(1.4,3,0.1))
+listkq10 = list(np.arange(0.1,0.9,0.1)) + list(np.arange(0.85,1.45,0.05)) + list(np.arange(1.5,3,0.1))
+
+NSweeps = 50
+
+for i in [2,4,6,8,10]:
+    run(i,NSweeps=NSweeps,listk=eval('listkq{}'.format(i)))
