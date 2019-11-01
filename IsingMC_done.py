@@ -25,13 +25,9 @@ def Conf2D(LSpin, q=2, type0='up'):
     if type0 == 'up':
         conf = np.zeros( (LSpin,LSpin) , dtype=int)
     elif type0 == 'alternating' or type0 == 'checkerboard':
-        if q%2 == 0:
-            conf = np.zeros( (LSpin,LSpin) , dtype=int)
-            conf[1::2,0::2] = q//2 # in even lines set odd elemets
-            conf[0::2,1::2] = q//2 # in odd lines set even elements
-        else:
-            print('No checkerboard with odd q yet. Returning up')
-            conf = np.zeros( (LSpin,LSpin) , dtype=int)
+        conf = np.zeros( (LSpin,LSpin) , dtype=int)
+        conf[1::2,0::2]= q//2 #if q is odd, there is no real checkerboard, so we define the approximate checkerboard
+        conf[0::2,1::2]= q//2 #by setting the opposite vector to q//2
     elif type0 == 'down':
             if q%2 == 0:
                 conf = q//2*np.ones( (LSpin,LSpin) , dtype=int)
@@ -42,6 +38,7 @@ def Conf2D(LSpin, q=2, type0='up'):
         conf = np.random.randint(0,q,(LSpin,LSpin))
     else:
         conf = np.zeros( (LSpin,LSpin) , dtype = int)
+        print("Wrong type argument. Returning up")
 
 
     return conf
