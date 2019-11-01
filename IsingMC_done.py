@@ -7,6 +7,7 @@ import numbers
 import math
 import matplotlib as mpl
 from matplotlib import animation, rc
+from tqdm import tqdm
 
 
 def Conf2D(LSpin, q=2, type0='up'):
