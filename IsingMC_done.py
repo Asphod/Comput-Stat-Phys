@@ -472,44 +472,59 @@ def runcluster(q=2,h=0,NSweeps=25,listk=np.arange(1/20,3,3/20),confinit='error')
 
 
 #%% Cluster Algo
-def Cluster(h,k,conf,q=2):
-    """ Build a trial cluster to sweep. Proba to build the cluster such as acceptance probability is 1.
+def ClusterSweep(h,k,conf,p=2):
+    """ Build a trial cluster of spins and sweep them in the opposite direction. 
+    The probability to add a spin to the cluster is such that the acceptance probability of the trial move is 1.
     Return the new configuration """
+    
     LSpin,LSpin = conf.shape
+    
+    # Choose a random spin of the configuration
     i,j = np.random.randint(0,LSpin,2)
     
-    cluster_value = conf[i,j]%q
+    # The cluster that will be built must be a cluster of spins aligned with the selected spin.
+    cluster_value = conf[i,j]%p
+    # Store the points whose neighbours must be and had not been  previously explored.
     explore_points = [[i,j]]
+    # Store the points of the cluster. Initilize it with the random selected spin.
     cluster = [[i,j]]
     
+    # The probabiliy to add another spin is chosen such that the acceptance probability of the trial
+    # move is 1.
     accept_proba = 1-np.exp(-2*k)
 
+    # While there are still points left to explore, check if its neighbours are aligned and had not been 
+    # already added to the cluster. If a neighbor is a valid candidate to be part of the cluster, add it 
+    # to the cluster and the spins to explore with a probability 'accept_proba'. If the spin is added, 
+    # add it to the spins to explore. The spins explored are removed from the spins to explore. A spin
+    # might be tested several times.
     while explore_points != []:
         [n,m] = explore_points[0]
-        if conf[(n+1)%LSpin , m ]%q == cluster_value and [(n+1)%LSpin,m] not in cluster:
+        if conf[(n+1)%LSpin , m ]%p == cluster_value and [(n+1)%LSpin,m] not in cluster:
             xi = np.random.random()
             if xi <= accept_proba:
                 explore_points.append([(n+1)%LSpin,m])
                 cluster.append([(n+1)%LSpin , m])
-        if conf[n, (m+1)%LSpin ]%q == cluster_value and [n,(m+1)%LSpin] not in cluster:
+        if conf[n, (m+1)%LSpin ]%p == cluster_value and [n,(m+1)%LSpin] not in cluster:
             xi = np.random.random()
             if xi <= accept_proba:
                 explore_points.append([n, (m+1)%LSpin ])
                 cluster.append([n, (m+1)%LSpin ])
-        if conf[(n-1)%LSpin , m ]%q == cluster_value and [(n-1)%LSpin,m] not in cluster:
+        if conf[(n-1)%LSpin , m ]%p == cluster_value and [(n-1)%LSpin,m] not in cluster:
             xi = np.random.random()
             if xi <= accept_proba:
                 explore_points.append([(n-1)%LSpin , m ])
                 cluster.append([(n-1)%LSpin , m])
-        if conf[n, (m-1)%LSpin ]%q == cluster_value and [n,(m-1)%LSpin] not in cluster:
+        if conf[n, (m-1)%LSpin ]%p == cluster_value and [n,(m-1)%LSpin] not in cluster:
             xi = np.random.random()
             if xi <= accept_proba:
                 explore_points.append([n, (m-1)%LSpin ])
                 cluster.append([n, (m-1)%LSpin ])
         explore_points.remove([n,m])
     
+    # Compute the trial configuration.
     conftrial = np.copy(conf)
-    cluster_newvalue = int((cluster_value + q//2) %q)
+    cluster_newvalue = int((cluster_value + p//2) %p)
     for [i,j] in cluster:
         conftrial[i,j] = cluster_newvalue
     return conftrial
