@@ -155,7 +155,6 @@ def AnimateMCRun(run,q=2):
     return anim
 
 
-
 def ImportanceSampling(h,k,LSpin,NRuns,NSweeps,q=2,NInit=0,run_firstconf_list = []):
     """
     Returns four NRunsxNSweeps arrays containing M, Q, m and q for
@@ -234,12 +233,144 @@ def ImportanceSampling(h,k,LSpin,NRuns,NSweeps,q=2,NInit=0,run_firstconf_list = 
     run_M_array = np.asarray(run_M_list)
     run_Q_array = np.asarray(run_Q_list)
     run_m_array = 1.*run_M_array.astype(float)/NSpin
-    run_q_array = 1.*run_Q_array.astype(float)/(NSpin/2.)
+    run_q_array = 1.*run_Q_array.astype(float)/NSpin/2
     run_lastconf_array = np.asarray(run_lastconf_list)
     run_MVec_array = np.asarray(run_MVec_list)
     run_mVec_array = 1.*run_MVec_array.astype(float)/NSpin
 
     return (run_m_array, run_q_array, run_mVec_array, run_lastconf_array )
+
+
+def ImportanceSamplingCluster(h,k,LSpin,NRuns,NSweeps,q=2,NInit=0,run_firstconf_list = []):
+    """
+    Returns four NRunsxNSweeps arrays containing M, Q, m and q for
+    LSpin x LSpin Ising conformations generated using Metropolis MC
+    with checkerboard sweeps
+    plus the list of the NRuns last conformations
+    """
+    NSpin = LSpin**2
+
+    #check assez de matrices initiales pour faire Nruns (si on donne une liste non vide)
+    if len(run_firstconf_list)!=0 and len(run_firstconf_list)<NRuns:
+        print(len(run_firstconf_list), ' conformations in firstconf_list insufficient for ',NRuns, ' runs')
+        return
+
+    #check taille des matrices donnés
+    if len(run_firstconf_list)!=0 and len(run_firstconf_list[0])!=LSpin:
+        print('Size ', len(run_firstconf_list[0]), ' of conformations in firstconf_list incompatible with LSpin = ',LSpin)
+        return
+
+    #si liste de taille au moins Nruns, go
+    if len(run_firstconf_list)!=0:
+        firstconf_list = run_firstconf_list
+
+    else:
+        firstconf_list = []
+#        RandomConf = Conf2D(LSpin,'random')
+        UpConf = Conf2D(LSpin,q,'up')
+        DownConf = Conf2D(LSpin,q,'down')
+        RandConf = Conf2D(LSpin,q,'random')
+        CheckConf = Conf2D(LSpin,q,'checkerboard')
+        for j in np.arange(0,NRuns):
+            if j<NRuns/4:
+                firstconf_list.append(UpConf)
+            elif j<2*NRuns/4:
+                firstconf_list.append(DownConf)
+            elif j<3*NRuns/4:
+                firstconf_list.append(RandConf)
+            else:
+                firstconf_list.append(CheckConf)
+#                firstconf_list.append(RandomConf)
+#                Random conformations take a very long time to equilibrate
+#                at low temperatures
+################################################################################
+
+#    conf = np.empty((LSpin,LSpin))
+
+    run_M_list = []
+    run_Q_list = []
+    run_MVec_list = []
+    run_lastconf_list = []
+    for j in np.arange(0,NRuns):
+        conf = firstconf_list[j]
+        # first equilibrate
+        for i in np.arange(0,NInit):
+            conf = Cluster(h,k,conf,q=q)
+
+        # and then start the data acquisition
+        M_list = []
+        Q_list = []
+        MVec_list = []
+        for i in np.arange(0,NSweeps):
+            conf = Cluster(h,k,conf,q=q)
+            M = Magnetization((2*np.pi/q)*conf)
+            Q = NNCoupling((2*np.pi/q)*conf)
+            MVec = VecMagnetization((2*np.pi/q)*conf)
+            
+            M_list.append(M)
+            Q_list.append(Q)
+            MVec_list.append(MVec)
+
+        run_M_list.append(M_list)
+        run_Q_list.append(Q_list)
+        run_lastconf_list.append(conf)
+        run_MVec_list.append(MVec_list)
+
+    run_M_array = np.asarray(run_M_list)
+    run_Q_array = np.asarray(run_Q_list)
+    run_m_array = 1.*run_M_array.astype(float)/NSpin
+    run_q_array = 1.*run_Q_array.astype(float)/NSpin/2
+    run_lastconf_array = np.asarray(run_lastconf_list)
+    run_MVec_array = np.asarray(run_MVec_list)
+    run_mVec_array = 1.*run_MVec_array.astype(float)/NSpin
+
+    return (run_m_array, run_q_array, run_mVec_array, run_lastconf_array )
+
+
+def run(q=2,h=0,NSweeps=200,listk=np.arange(1/20,3,3/20),confinit='updown'):
+    """ Simulation for a given q. Create a file with all the data."""
+    q=q
+    h = h
+    LSpin = 64
+    NRuns = 10
+#    NSweeps = 10000
+    
+#    listk = listk
+    
+#    M_ISL64Q = {}
+#    Q_ISL64Q = {}
+    m_ISL64Q = {}
+    q_ISL64Q = {}
+    mVec_ISL64Q = {}
+    lastconf_ISL64Q = {}
+    
+    listk_reversed = np.flip(listk)
+    k=listk_reversed[0]
+    
+    if confinit == 'all':
+        listConfInit = []
+        for j in range(q-1):
+            listConfInit += [Conf2D(LSpin,q=q,type0=j)]*(NRuns//q)
+        listConfInit += [Conf2D(LSpin,q=q,type0=q-1)]*(NRuns - len(listConfInit))
+    else:
+        listConfInit = [Conf2D(LSpin, q = q, type0 = 'up') for i in range(int(np.floor(NRuns/2)))] + [Conf2D(LSpin, q = q, type0 = 'up') for i in range(int(np.ceil(NRuns/2)))]
+   
+            
+    
+    m_ISL64Q[(h,k)], q_ISL64Q[(h,k)], mVec_ISL64Q[(h,k)], lastconf_ISL64Q[(h,k)] = ImportanceSampling(h,k,LSpin,NRuns,NSweeps,q=q,NInit=0,run_firstconf_list = listConfInit)
+    kavant=k
+    for k in tqdm(listk_reversed[1:]):
+        m_ISL64Q[(h,k)], q_ISL64Q[(h,k)], mVec_ISL64Q[(h,k)], lastconf_ISL64Q[(h,k)] = ImportanceSampling(h,k,LSpin,NRuns,NSweeps,q=q,NInit=0,run_firstconf_list=lastconf_ISL64Q[(h,kavant)])
+        kavant=k
+
+    if h==0:
+        with open('/Users/Aspho/github/Comput-Stat-Phys/Overnight3/ISL64Q{}MC{}Overnight3.p'.format(q,NSweeps),'wb') as pfile:
+            pickle.dump((m_ISL64Q, q_ISL64Q, mVec_ISL64Q, lastconf_ISL64Q),pfile)
+    else:
+        with open('/Users/Aspho/github/Comput-Stat-Phys/ISL64Q{}H{}_{}MC{}Day.p'.format(q,int(h//1),int(h%1),NSweeps),'wb') as pfile:
+            pickle.dump((m_ISL64Q, q_ISL64Q, mVec_ISL64Q, lastconf_ISL64Q),pfile)
+    
+    return
 
 
 
@@ -311,6 +442,35 @@ def run(q,NSweeps=200,listk=np.arange(1/20,1+1/20,1/20)):
     return
 
 
+def runcluster(q=2,h=0,NSweeps=25,listk=np.arange(1/20,3,3/20),confinit='error'):
+    """ Simulation for a given q. Create a file with all the data."""
+    q=q
+    h = h
+    LSpin = 64
+    NRuns = 10
+#    NSweeps = 10000
+    
+#    listk = listk
+    
+#    M_ISL64Q = {}
+#    Q_ISL64Q = {}
+    m_ISL64Q = {}
+    q_ISL64Q = {}
+    mVec_ISL64Q = {}
+    lastconf_ISL64Q = {}
+    
+    if not isinstance(confinit,dict):
+        return ('Error confinit')
+    
+    for (h,k) in tqdm(confinit.keys()):
+        m_ISL64Q[(h,k)], q_ISL64Q[(h,k)], mVec_ISL64Q[(h,k)], lastconf_ISL64Q[(h,k)] = ImportanceSamplingCluster(h,k,LSpin,NRuns,NSweeps,q=q,NInit=0,run_firstconf_list=confinit[(h,k)])
+
+    with open('/Users/Aspho/github/Comput-Stat-Phys/ISL64Q{}MC{}OvernightCluster.p'.format(q,NSweeps),'wb') as pfile:
+        pickle.dump((m_ISL64Q, q_ISL64Q, mVec_ISL64Q, lastconf_ISL64Q),pfile)
+
+
+
+
 #%% Cluster Algo
 def Cluster(h,k,conf,q=2):
     """ Build a trial cluster to sweep. Proba to build the cluster such as acceptance probability is 1.
@@ -324,31 +484,28 @@ def Cluster(h,k,conf,q=2):
     
     accept_proba = 1-np.exp(-2*k)
 
-    compteur = 0
     while explore_points != []:
-        print(compteur)
-        compteur+=1
-        for [n,m] in explore_points:
-            if conf[(n+1)%LSpin , m ]%q == cluster_value and [(n+1)%LSpin,m] not in cluster:
-                xi = np.random.random()
-                if xi <= accept_proba:
-                    explore_points.append([(n+1)%LSpin,m])
-                    cluster.append([(n+1)%LSpin , m])
-            elif conf[(n-1)%LSpin , m ]%q == cluster_value and [(n-1)%LSpin,m] not in cluster:
-                xi = np.random.random()
-                if xi <= accept_proba:
-                    explore_points.append([(n-1)%LSpin , m ])
-                    cluster.append([(n-1)%LSpin , m])
-            elif conf[n, (m+1)%LSpin ]%q == cluster_value and [n,(m+1)%LSpin] not in cluster:
-                xi = np.random.random()
-                if xi <= accept_proba:
-                    explore_points.append([n, (m+1)%LSpin ])
-                    cluster.append([n, (m+1)%LSpin ])
-            elif conf[n, (m-1)%LSpin ]%q == cluster_value and [n,(m-1)%LSpin] not in cluster:
-                xi = np.random.random()
-                if xi <= accept_proba:
-                    explore_points.append([n, (m-1)%LSpin ])
-                    cluster.append([n, (m-1)%LSpin ])
+        [n,m] = explore_points[0]
+        if conf[(n+1)%LSpin , m ]%q == cluster_value and [(n+1)%LSpin,m] not in cluster:
+            xi = np.random.random()
+            if xi <= accept_proba:
+                explore_points.append([(n+1)%LSpin,m])
+                cluster.append([(n+1)%LSpin , m])
+        if conf[n, (m+1)%LSpin ]%q == cluster_value and [n,(m+1)%LSpin] not in cluster:
+            xi = np.random.random()
+            if xi <= accept_proba:
+                explore_points.append([n, (m+1)%LSpin ])
+                cluster.append([n, (m+1)%LSpin ])
+        if conf[(n-1)%LSpin , m ]%q == cluster_value and [(n-1)%LSpin,m] not in cluster:
+            xi = np.random.random()
+            if xi <= accept_proba:
+                explore_points.append([(n-1)%LSpin , m ])
+                cluster.append([(n-1)%LSpin , m])
+        if conf[n, (m-1)%LSpin ]%q == cluster_value and [n,(m-1)%LSpin] not in cluster:
+            xi = np.random.random()
+            if xi <= accept_proba:
+                explore_points.append([n, (m-1)%LSpin ])
+                cluster.append([n, (m-1)%LSpin ])
         explore_points.remove([n,m])
     
     conftrial = np.copy(conf)
